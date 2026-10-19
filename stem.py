@@ -67,16 +67,87 @@ def sobel(gray, threshold):
                 result[y, x] = 255
     return result
 
-def otsu(gray, cfg):
-    return gray.copy()
+def otsu(gray):
+    hist = np.zeros(256, dtype=int)
+    for pixel in gray.flat:
+        hist[pixel] += 1
+
+    total = gray.size
+    sum_all = 0
+    for i in range(256):
+        sum_all += i * hist[i]
+
+    best_threshold = 0
+    best_score = 0
+    dark_count = 0
+    dark_sum = 0
+
+    for threshold in range(256):
+        dark_count += hist[threshold]
+        dark_sum += threshold * hist[threshold]
+        light_count = total - dark_count
+        if dark_count == 0 or light_count == 0:
+            continue
+        dark_mean = dark_sum / dark_count
+        light_mean = (sum_all - dark_sum) / light_count
+        score = dark_count * light_count * (dark_mean - light_mean) ** 2
+        if score > best_score:
+            best_score = score
+            best_threshold = threshold
+
+    result = np.zeros(gray.shape, dtype=np.uint8)
+    result[gray > best_threshold] = 255
+
+    return result
 
 
-def morph(gray, cfg):
-    return gray.copy()
+def morph(gray):
+    size = 3
+    radius = size // 2
+    height, width = gray.shape
+    result = np.zeros(gray.shape, dtype=np.uint8)
 
+    for y in range(height):
+        for x in range(width):
+            max_value = 0
 
-def lbp(gray, cfg):
-    return gray.copy()
+            for dy in range(-radius, radius + 1):
+                for dx in range(-radius, radius + 1):
+                    ny = y + dy
+                    nx = x + dx
+
+                    if 0 <= ny < height and 0 <= nx < width:
+                        if gray[ny, nx] > max_value:
+                            max_value = gray[ny, nx]
+
+            result[y, x] = max_value
+
+    return result
+
+def lbp(gray):
+    image = np.pad(gray, 1, mode="edge")
+    center = image[1:-1, 1:-1]
+    result = np.zeros(gray.shape, dtype=np.uint8)
+
+    neighbors = [
+        image[:-2, :-2],
+        image[:-2, 1:-1],
+        image[:-2, 2:],
+        image[1:-1, 2:],
+        image[2:, 2:],
+        image[2:, 1:-1],
+        image[2:, :-2],
+        image[1:-1, :-2]
+    ]
+
+    for i in range(len(neighbors)):
+        neighbor = neighbors[i]
+        if i == 0:
+            result[neighbor >= center] += 1
+        else:
+            result[neighbor >= center] += 2 ** i
+
+    return result
 
 
 # шум, метрики
@@ -112,6 +183,15 @@ def main():
 
         result = sobel(gray, 100)
         save_image(result, "results/sobel/" + name + ".png")
+
+        result = otsu(gray)
+        save_image(result, "results/otsu/" + name + ".png")
+
+        result = morph(gray)
+        save_image(result, "results/morph/" + name + ".png")
+
+        result = lbp(gray)
+        save_image(result, "results/lbp/" + name + ".png")
 
 
 if __name__ == "__main__":
