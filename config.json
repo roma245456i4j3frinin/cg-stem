@@ -1,0 +1,6 @@
+{
+    "seed": 0,
+    "sobel_threshold": 100,
+    "gaussian_sigma": 20,
+    "salt_pepper": 0.05
+}
